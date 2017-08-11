@@ -1,0 +1,628 @@
+FORMAT: 1A
+HOST: http://www.openehr.org/api
+
+
+# OpenEHR EHR REST API (v0.1 proposal)
+
+**The following is a proposal for an OpenEHR EHR REST API. It is not complete and might still change completely
+before the final release.**
+
+The following specifications are not intended to describe an existing API but rather an abstract blueprint 
+to which each openEHR implementation should adhere to.
+
+The openEHR EHR REST API enables interaction with an openEHR service in a RESTful manner.
+ 
+## Considerations
+
+### About `versionSelector`
+
+In many places parameter `versionSelector` is used to select a specific version (or associated data object)
+of a VERSIONED_OBJECT and can have the following values:
+- fixed string: `LATEST_TRUNK_VERSION`
+- a specific timestamp in the ISO8601 format (e.g. 2015-01-20T19:30:22.765+01:00)
+- a `versionUid` (VERSION unique identifier)
+- a `uid` (VERSIONED_OBJECT unique identifier)
+
+When the `versionSelector` parameter is not provided, the latest trunk version is returned, 
+which is the same as specifying `versionSelector=LATEST_TRUNK_VERSION`.
+
+## Glossary
+ 
+Throughout these specifications a set of short terms is being used as described below:
+
+| Term | Description |
+|------|-------------|
+|`ehrId`| The string value for an EHR identifier, stored under EHR.ehr_id.value, usually an UUID or GUID |
+|`uid`| The string value of a VERSIONED_OBJECT unique identifier, stored under VERSIONED_OBJECT.uid.value, e.g. 8849182c-82ad-4088-a07f-48ead4180515 |
+|`versionUid`| The string value of a VERSION unique identifier, stored under VERSION.uid.value, e.g. 8849182c-82ad-4088-a07f-48ead4180515::example.domain.com::1 |
+|`versionSelector`| The string value of a VERSION unique identifier, a specific timestamp or the string `LATEST_TRUNK_VERSION` |
+
+## Data representation
+
+### JSON Format
+
+- attribute names will be lowercase snake-case names as specified in the RM spec. For example:
+    - context : {"start_time": "2016-01-01T00:00Z"}
+- metadata attributes (those that are not also RM attributes) will always be prefixed by a '_'
+- we will use a `$type` attribute to specify RM type which will be upper-case class name from the RM spec:
+    {
+        "$type": "DV_TEXT",
+        "value": "Hello world!"
+    }
+- null RM attributes will be absent when serialized as JSON
+
+### Datetime format
+
+It is recommended to always use canonical ISO8601 expanded format, e.g. 2016-06-23T13:42:16.117+02:00.
+
+# Group EHR
+
+## EHR [/ehrs]
+
+Management of EHR resources.
+
+### Create a new EHR [POST]
+
+Create a new `EHR` with an auto-generated identifier.
+Request body may contain `ehr_status` and `ehr_access` attributes. When provided these
+resources will also be created as part of the `create EHR` action, 
+otherwise default resources will be created automatically by the service.
+
++ Request
+
+    + Headers
+
+            Prefer: return={representation|minimal}
+
+    + Body
+
+            {
+                "commit_audit": {
+                    "description": "Commit audit description",
+                    "committer": {"$type": "PARTY_IDENTIFIED", ... }
+                },
+                "ehr_status": { ... }
+            }
+
++ Response 201 (application/json)
+
+    `201 Created` is returned when a new EHR has been successfully created. 
+    The EHR resource is returned in the body when the `Prefer` header has the value of `return=representation`.
+
+    + Headers
+
+            Location: /ehrs/{ehrId}
+
+    + Body
+
+            {
+                "system_id": {...},
+                "ehr_id": {...},
+                "ehr_status": "versioned ehr status uid",
+                "ehr_access": "versioned ehr access uid",
+                "directory": {},
+                "time_created", "..."
+            }
+
++ Response 400
+
+    '400 Bad Request' is returned when unable to create a new EHR due to bad client Request, e.g. malformed syntax.
+
+    + Body
+
++ Response 401
+
+    `401 Unauthorized` is returned when request is not authorised to be performed.
+
+    + Body
+
+
+### Create a new EHR with custom (user supplied) ehrId [PUT /ehrs/{ehrId}]
+
+Create new `EHR` with the specified EHR identifier. 
+The request body may contain `ehr_status` and `ehr_access` attributes, 
+which will be used to create these initial resources associated with the new EHR.
+When the `ehr_status` or `ehr_access` attributes are not provided, defaults resources 
+will be created by the service.
+
++ Parameters
+    + ehrId (string) - EHR identifier
+
++ Request
+
+    + Headers
+
+            Prefer: return={representation|minimal}
+
+    + Body
+
+            {
+                "commit_audit": {
+                    "description": "Commit audit description",
+                    "committer": {"$type": "PARTY_IDENTIFIED", ... }
+                },
+                "ehr_status": {...}
+            }
+
++ Response 201 (application/json)
+
+    `201 Created` is returned when a new EHR has been successfully created. 
+    The new EHR resource is returned in the body when the request's `Prefer` header value is `return=representation`.
+
+    + Headers
+
+            Location: /ehrs/{ehrId}
+
+    + Body
+
+            {
+                "system_id": {},
+                "ehr_id": {},
+                "ehr_status": "versioned ehr status uid",
+                "directory": {},
+                "time_created", "..."
+            }
+
++ Response 400
+
+    '400 Bad Request' is returned when unable to create a new EHR due to bad client Request, e.g. malformed syntax such as the 'ehrId' not a valid HIER_OBJECT_ID value.
+
+    + Body
+
++ Response 401
+
+    `401 Unauthorized` is returned when request is not authorised to be performed.
+
+    + Body
+
++ Response 409
+
+    `409 Conflict`: Unable to create a new EHR due to a conflict with the current state of the resource. 
+	Can happen when the supplied ehrId already exists.
+
+    + Body
+
+
+### Get EHR [GET /ehrs/{ehrId}]
+Retrieve the EHR with the specified `ehrId`.
+
++ Parameters
+    + ehrId (string) - EHR identifier
+
++ Response 200 (application/json)
+    `200 OK` is returned when the EHR resource is successfully retrieved.
+    
+    + Body
+
+            {
+                "system_id": {},
+                "ehr_id": {},
+                "ehr_status": "versioned ehr status uid",
+                "ehr_access": "versioned ehr access uid",
+                "directory": {},
+                "time_created", "...",
+                ... // to be defined, possibly counts of compositions, contributions, etc.
+            }
+
++ Response 400
+    `400 Bad Request` is returned when the request has invalid content such as an invalid `ehrId` value.
+
+    + Body
+    
++ Response 401
+    `401 Unauthorized` is returned when request is not authorised.
+
+    + Body
+
++ Response 404
+
+    `404 Not Found` is returned when an `EHR` with `ehrId` does not exist.
+
+    + Body
+
+# Group EHR_STATUS
+
+## EHR_STATUS [/ehrs/{ehrId}/ehr_status]
+Management of EHR_STATUS resources.
+
+### Get EHR_STATUS [GET /ehrs/{ehrId}/ehr_status{?versionSelector}]
+
+Retrieve the `EHR_STATUS` associated with the EHR specified by `ehrId`. 
+When the `versionSelector` parameter is provided, the `EHR_STATUS` version that existed at the specified version time is returned, 
+otherwise the latest trunk version is returned.
+The `versionSelector` parameter may be an ISO8601 datetime string or symbolic value such as `LATEST_TRUNK_VERSION`. 
+
++ Parameters
+    + ehrId (string) - EHR identifier
+    + versionSelector (string, optional) - version time specifier
+
++ Response 200 (application/json)
+    `200 OK` is return with the EHR_STATUS resource in the body when it is successfully retrieved. 
+
+    + Headers
+
+            Content-Location: /ehrs/{ehrId}/ehr_status/{versionUid}
+            ETag: {versionUid}
+
+    + Body
+
+            {
+                "uid": "..",
+                "subject": {
+                    “external_ref”: {
+                        “namespace”: “DEMOGRAPHIC”,
+                        “type”: “PERSON”,
+                        “id”: {
+                            “@type”: “HIER_OBJECT_ID”,
+                            “value”: “12341234-1234-1234-123412”
+                        }
+                    }
+                },
+                "is_queryable": true,
+                "is_modifiable": true,
+                "other_details": {}
+            }
+
+
++ Response 400
+
+    `400 Bad Request` is returned when the request has invalid content such as an invalid `ehrId` or `versionUid` format.
+    
+    + Body
+    
++ Response 401
+
+    `401 Unauthorized` is returned when request is not authorised.
+
+    + Body
+
++ Response 404
+
+    `404 Not Found` returned when `EHR` with `ehrId` does not exist or has been deleted or 
+    a version of an `EHR_STATUS` resource does not exist at the specified `versionSelector`.  
+
+    + Body
+
+### Update EHR_STATUS [PUT /ehrs/{ehrId}/ehr_status]
+
+Update `EHR_STATUS` associated with the specified `ehrId`. 
+The existing `versionUid` of `EHR_STATUS` resource must be specified in the `Match-If` header.
+The response will contain the updated `EHR_STATUS` resource when the `Prefer` header has a value of `return=representation`
+
++ Parameters
+    + ehrId (string) - EHR identifier
+
++ Request (application/json)
+
+    + Header
+
+            Match-If: {precedingVersionUid}
+            Prefer: return={representation|minimal}
+
+    + Body
+
+            {
+                "subject": {},
+                "is_queryable": true,
+                "is_modifiable": true,
+                "other_details": {}
+            }
+
++ Response 200
+
+    `200 OK` return when `EHR_STATUS` resource is successfully updated. 
+    The updated `EHR_STATUS` resource is returned in the body when `prefer` header value is `return=representation`.
+
+    + Headers
+
+            Content-Location: /ehrs/{ehrId}/ehr_status/{versionUid}
+            ETag: {versionUid}
+
+    + Body
+
+            {
+                "uid": "...",
+                "subject": {},
+                "is_queryable": true,
+                "is_modifiable": true,
+                "other_details": {}
+            }
+
++ Response 204
+
+    `204 No Content` is returned when `Prefer` header is NOT set to `return=representation`.
+
+    + Headers
+
+            Content-Location: /ehrs/{ehrId}/ehr_status/{versionUid}
+            ETag: {versionUid}
+
++ Response 400
+    `400 Bad Request` is returned when the request has invalid content such as an invalid `ehrId` format.
+    
+    + Body
+    
++ Response 401
+
+    `401 Unauthorized` is returned when request is not authorised.
+
+    + Body
+
++ Response 404
+
+    `404 Not Found` is returned when EHR with ehrId does not exist or has been deleted or 
+    a version of an `EHR_STATUS` resource does not exist at the specified `versionSelector`.
+
+    + Body
+
++ Response 412
+
+    `412 Conflict` is return when `Match-If` header doesn't match the latest trunk version. 
+    Returns latest trunk version in the `Content-Location` and `ETag` headers.
+
+    + Headers
+
+            Content-Location: /ehrs/{ehrId}/ehr_status/{versionUid}
+            ETag: {versionUid}
+
+    + Body
+
+
+# Group COMPOSITION
+
+### Create a new composition [POST /compositions{?ehrId}]
+
++ Parameters
+
+    + ehrId (string) - EHR id
+
++ Request
+
+    + Body (application/json)
+
+            {
+                "$type": "COMPOSITION",
+                "name": {
+                    "$type": "DV_TEXT",
+                    "value": "Vital Signs"
+                },
+                ...
+            }
+
+    + Headers
+
+            Prefer: return={representation/minimal}
+
++ Response 201
+
+    New composition was created. Content body is only returned when
+    `Prefer` header has `return=representation` otherwise only headers are
+    returned.
+
+    + Headers
+
+            Location: /compositions/{versionUid}
+            ETag: {versionUid}
+
+    + Body
+
+            {
+                "$type": "COMPOSITION",
+                "name": {
+                    "$type": "DV_TEXT",
+                    "value": "Vital Signs"
+                },
+                ...
+            }
+
++ Response 400
+
+    Bad request: composition validation errors.
+
+    + Body
+
+            {
+                "message": "Error message",
+                "validationErrors": [
+                    "error1", "error2"
+                ]
+            }
+
++ Response 401
+
+    Unauthorized.
+
+    + Body
+
++ Response 404
+
+    No EHR with the given id.
+
+    + Body
+
+### Update a composition [PUT /compositions/{objectId}]
+
++ Parameters
+
+    + objectId (string) - object id of the composition to update
+
++ Request
+
+    + Body (application/json)
+
+            {
+                "$type": "COMPOSITION",
+                "name": {
+                    "$type": "DV_TEXT",
+                    "value": "Vital Signs"
+                },
+                ...
+            }
+
+    + Headers
+
+            Match-If: {precedingVersionUid}
+            Prefer: return={representation/minimal}
+
++ Response 200 (application/json)
+
+    Returned when `Prefer` header is set to `return=representation`.
+
+    + Headers
+
+            Content-Location: /compositions/{versionUid}
+            ETag: {versionUid}
+
+    + Body
+
+            {
+                "$type": "COMPOSITION",
+                "name": {
+                    "$type": "DV_TEXT",
+                    "value": "Vital Signs"
+                },
+                ...
+            }
+
++ Response 204
+
+    Returned when `Prefer` header is NOT set to `return=representation`.
+
+    + Headers
+
+            Content-Location: /compositions/{versionUid}
+            ETag: {versionUid}
+
++ Response 400 (application/json)
+
+    Bad request: composition validation errors.
+
+    + Body
+
+            {
+                "message": "Error message",
+                "validationErrors": [
+                    "error1", "error2"
+                ]
+            }
+
++ Response 401
+
+    Unauthorized.
+
+    + Body
+
++ Response 404
+
+    No EHR with the given id or no composition with the given object id.
+
+    + Body
+
++ Response 412
+
+    `Match-If` header doesn't match the last version. Returns
+    last version in the `Content-Location` and `ETag` headers.
+
+    + Headers
+
+            Content-Location: /ehrs/{ehrId}/ehr_status/{versionUid}
+            ETag: {versionUid}
+
+    + Body
+
+
+### Delete a composition [DELETE /compositions/{object_id}]
+
++ Parameters
+
+    + object_id (string) - object id of the composition to delete
+
++ Request
+
+    + Headers
+
+            Match-If: {precedingVersionUid}
+
++ Response 204
+
+    Composition was deleted.
+
+    + Headers
+
+            Content-Location: /compositions/{versionUid}
+            ETag: {versionUid}
+
+    + Body
+
++ Response 400
+
+    Bad request.
+
+    + Body
+
++ Response 401
+
+    Unauthorized.
+
+    + Body
+
++ Response 404
+
+    No EHR with the given id or no composition with the given object id.
+
+    + Body
+
++ Response 412
+
+    `Match-If` header doesn't match the last version. Returns
+    last version in the `Content-Location` and `ETag` headers.
+
+    + Headers
+
+            Content-Location: /compositions/{versionUid}
+            ETag: {versionUid}
+
+    + Body
+
+### Get a composition [GET /compositions/{objectId}{?versionSelector}]
+
++ Parameters
+
+    + objectId (string) - VERSIONED_COMPOSITION's uid
+    + versionSelector (string, optional) - version time specifier
+
++ Response 200 (application/json)
+
+    + Headers
+
+            Content-Location: /compositions/{versionUid}
+            ETag: {versionUid}
+
+    + Body
+
+            {
+                "$type": "COMPOSITION",
+                "name": {
+                    "$type": "DV_TEXT",
+                    "value": "Vital Signs"
+                },
+                ...
+            }
+
++ Response 204 (application/json)
+
+    No composition at specified versionSelector.
+
+    + Body
+
++ Response 401
+
+    Unauthorized.
+
+    + Body
+
++ Response 404
+
+    No composition with the given object id.
+
+    + Body
