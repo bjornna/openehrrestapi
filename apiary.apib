@@ -44,9 +44,9 @@ Throughout these specifications a set of short terms is being used as described 
 - attribute names will be lowercase snake-case names as specified in the RM spec. For example:
     - context : {"start_time": "2016-01-01T00:00Z"}
 - metadata attributes (those that are not also RM attributes) will always be prefixed by a '_'
-- we will use a `$type` attribute to specify RM type which will be upper-case class name from the RM spec:
+- we will use a `_type` attribute to specify RM type which will be upper-case class name from the RM spec:
     {
-        "$type": "DV_TEXT",
+        "_type": "DV_TEXT",
         "value": "Hello world!"
     }
 - null RM attributes will be absent when serialized as JSON
@@ -139,7 +139,7 @@ otherwise default resources will be created automatically by the service.
             {
                 "commit_audit": {
                     "description": "Commit audit description",
-                    "committer": {"$type": "PARTY_IDENTIFIED", ... }
+                    "committer": {"_type": "PARTY_IDENTIFIED", ... }
                 },
                 "ehr_status": { ... }
             }
@@ -193,13 +193,13 @@ will be created by the service.
     + Headers
 
             Prefer: return={representation|minimal}
-
+d 
     + Body
 
             {
                 "commit_audit": {
                     "description": "Commit audit description",
-                    "committer": {"$type": "PARTY_IDENTIFIED", ... }
+                    "committer": {"_type": "PARTY_IDENTIFIED", ... }
                 },
                 "ehr_status": {...}
             }
@@ -313,7 +313,7 @@ The `versionSelector` parameter may be an ISO8601 datetime string or symbolic va
                         “namespace”: “DEMOGRAPHIC”,
                         “type”: “PERSON”,
                         “id”: {
-                            “@type”: “HIER_OBJECT_ID”,
+                            “_type”: “HIER_OBJECT_ID”,
                             “value”: “12341234-1234-1234-123412”
                         }
                     }
@@ -441,9 +441,9 @@ The response will contain the updated `EHR_STATUS` resource when the `Prefer` he
     + Body (application/json)
 
             {
-                "$type": "COMPOSITION",
+                "_type": "COMPOSITION",
                 "name": {
-                    "$type": "DV_TEXT",
+                    "_type": "DV_TEXT",
                     "value": "Vital Signs"
                 },
                 ...
@@ -467,9 +467,9 @@ The response will contain the updated `EHR_STATUS` resource when the `Prefer` he
     + Body
 
             {
-                "$type": "COMPOSITION",
+                "_type": "COMPOSITION",
                 "name": {
-                    "$type": "DV_TEXT",
+                    "_type": "DV_TEXT",
                     "value": "Vital Signs"
                 },
                 ...
@@ -511,9 +511,9 @@ The response will contain the updated `EHR_STATUS` resource when the `Prefer` he
     + Body (application/json)
 
             {
-                "$type": "COMPOSITION",
+                "_type": "COMPOSITION",
                 "name": {
-                    "$type": "DV_TEXT",
+                    "_type": "DV_TEXT",
                     "value": "Vital Signs"
                 },
                 ...
@@ -536,9 +536,9 @@ The response will contain the updated `EHR_STATUS` resource when the `Prefer` he
     + Body
 
             {
-                "$type": "COMPOSITION",
+                "_type": "COMPOSITION",
                 "name": {
-                    "$type": "DV_TEXT",
+                    "_type": "DV_TEXT",
                     "value": "Vital Signs"
                 },
                 ...
@@ -661,9 +661,9 @@ The response will contain the updated `EHR_STATUS` resource when the `Prefer` he
     + Body
 
             {
-                "$type": "COMPOSITION",
+                "_type": "COMPOSITION",
                 "name": {
-                    "$type": "DV_TEXT",
+                    "_type": "DV_TEXT",
                     "value": "Vital Signs"
                 },
                 ...
