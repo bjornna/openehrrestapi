@@ -55,6 +55,66 @@ Throughout these specifications a set of short terms is being used as described 
 
 It is recommended to always use canonical ISO8601 expanded format, e.g. 2016-06-23T13:42:16.117+02:00.
 
+# Group EHR Simple
+
+## EHR [/ehr]
+The simplest possible management of EHRs 
+
+### Create a new EHR [POST]
+
+Create a new `EHR` with an auto-generated identifier. 
+
++ Request 
+
+    + Body
+    
+            {
+             "subjectId": "bna01",
+             "subjectNamespace": "dips-bna",
+             "committerName": "bna"
+            }
++ Response 201
+    `201 Created` is returned when a new EHR has been successfully created. 
+    The EHR resource is returned in the body when the `Prefer` header has the value of `return=representation`.
+
+    + Headers
+
+            Location: /ehrs/{ehrId}
+
+    + Body
+
+            {
+                "system_id": {
+                    "value": "9624982A-9F42-41A5-9318-AE13D5F5031F"
+                },
+                "ehr_id": {
+                    "value": "83f5712a-310e-4e8c-a3c3-092014bee4de"
+                },
+                "ehr_status": {
+                    "subject": {
+                        "external_ref": {
+                            "id": {
+                                "_type": "GENERIC_ID",
+                                "value": "bna01",
+                                "scheme": null
+                            },
+                        "namespace": "dips-bna",
+                        "type": "PERSON"
+                    }
+                },
+                "is_queryable": true,
+                "is_modifiable": true
+                },
+                //"ehr_access": "versioned ehr access uid",
+                "directory": {},
+                "time_created":{
+                    "value": "2017-08-14T04:21:09.498566+00:00"
+                }
+            }
+
+
+
+
 # Group EHR
 
 ## EHR [/ehrs]
@@ -166,19 +226,19 @@ will be created by the service.
 + Response 400
 
     '400 Bad Request' is returned when unable to create a new EHR due to bad client Request, e.g. malformed syntax such as the 'ehrId' not a valid HIER_OBJECT_ID value.
-
+    
     + Body
+    
 
 + Response 401
 
     `401 Unauthorized` is returned when request is not authorised to be performed.
-
+    
     + Body
 
 + Response 409
 
-    `409 Conflict`: Unable to create a new EHR due to a conflict with the current state of the resource. 
-	Can happen when the supplied ehrId already exists.
+    `409 Conflict`: Unable to create a new EHR due to a conflict with the current state of the resource. Can happen when the supplied ehrId already exists.
 
     + Body
 
